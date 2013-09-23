@@ -4,151 +4,39 @@
 #include <vector>
 #include <time.h>
 #include <algorithm>
+#include "mac_description.h"
+#include "power_time_description.h"
+#include "misc.h"
+#include "dumpData.h"
 
 using namespace std;
 
-bool charInSet(char c, const char* set)
+void intDown()
 {
-  int i = 0;
-  while (set[i] && set[i] != c)
-    i++;
-  return set[i];
 }
 
-void createTokenVector(char* s, vector<char*> &v, const char* t)
+void intUp()
 {
-  int i=0;
-  while (true)
-  {
-    while (charInSet(s[i], t))
-      if (s[i]) i++; else return;
-    v.push_back(&(s[i]));
-    while (!charInSet(s[i], t))
-      if (s[i]) i++; else return;
-    s[i]=0;
-    i++;
-  }
 }
-
-//typedef unsigned char MACaddr[6];
-struct MACaddr
-{
-  unsigned char addr[6];
-  unsigned char& operator [ ] (int n)
-  {
-    return addr[n];
-  }
-  MACaddr()
-  {
-    for (int i = 0; i < 6; i++)
-    {
-      addr[i] = 0;
-    }
-  }
-  
-  MACaddr(int a)
-  {
-    for (int i = 0; i < 6; i++)
-      addr[i] = (unsigned char) (0xFF && a>>8*(5-i));
-  }
-  MACaddr(char* s, bool *result = NULL)
-  {
-    bool rslt;
-    if (result == NULL)
-      result = &rslt;
-    *result = true;
-    unsigned char b[6];
-    for (int j = 0; j < 6; j++)
-    {
-      int z;
-      if (1 != sscanf(&(s[j*3]), "%x", &z))
-        *result = false;
-      b[j] = 0xFF & z;
-    }
-    if (*result)
-      for (int i = 0; i < 6; i++)
-        addr[i] = b[i];
-  }
-  operator int () const
-  {
-    int r = 0;
-    for (int i = 0; i < 6; i++)
-    {
-      r <<= 8;
-      r |= addr[i];
-    }
-    return r;
-  }
-};
-
-ostream& operator << (ostream &s, MACaddr a)
-{
-  s<<hex;
-  for (int i = 0; i < 6; i++)
-    s<<((i)?":":"")<<((a[i]<0x10)?"0":"")<<(int)a[i];
-  s<<dec;
-  return s;
-}
-
-bool tryParseMAC(char* s, const char *prefix, MACaddr &a)
-{
-  int i = 0;
-  while (prefix[i])
-    if (s[i] != prefix[i])
-      return false;
-    else i++;
-  bool r;
-  MACaddr b(&(s[i]), &r);
-  if (r)
-    a = b;
-  return r;
-}
-
-bool MACinList(MACaddr a, vector<MACaddr> l)
-{
-  vector<MACaddr>::iterator f = find(l.begin(), l.end(), a);
-  return f != l.end();
-}
-
-typedef char Power;
-
-bool tryParsePower(char* s, Power &p)
-{
-  int i = 0;
-  bool minus = false;
-  if (s[0] == '-')
-  {
-    minus = true;
-    i++;
-  }
-  int r = 0;
-  while (charInSet(s[i], "0123456789"))
-  {
-    r *= 10;
-    r +=s[i]-'0';
-    i++;
-  }
-  if (s[i] == 'd' && s[i+1] == 'B' && s[i+2] == 0)
-  {
-    p = 0xFF & r;
-    return true;
-  }
-  return false;
-}
-
-typedef double Time;
 
 int main()
 {
-  clock_t t;
+  clock_t lastTime = time(NULL);
+  
   vector<MACaddr> ignoreList;
   vector<MACaddr> trustedList;
-  trustedList.push_back(MACaddr("84:c9:b2:07:9d:0a"));
+  char *OUTPUT_FILE_NAME = NULL;
+  char *OUTPUT_RESULT_NAME = NULL;
+  double UP_PERIOD, FLUSH_PERIOD;
+
+  DumpData dd;
   char *input = new char [1024];
-  
+  double timeToFlush = -1;
+  double timeToIntDown = -1;
+
   while (true)
   {
-    //cout<<"CLOCK   "<<clock()<<"\n\n\n";
+    //Parse input
     cin.getline(input, 1023, '\n');
     vector<char*> tokens;
     createTokenVector(input, tokens, " \t");
@@ -169,15 +57,48 @@ int main()
     }
     if (!PowerDetected || !MACdetected)
       continue;
-    cout<<t<<" "<<a<<" "<<(int)p<<endl;
+
+    //cout<<t<<" "<<a<<" "<<(int)p<<endl;
+
+    //MAC check
     if (MACinList(a, ignoreList))
       continue;
     else if (MACinList(a, trustedList))
     {
-      cout<<"^^^ this is trusted MAC ^^^\n\n";
-      
+    //  cout<<"^^^ this is trusted MAC ^^^\n\n";
+      dd.flushToFile(OUTPUT_FILE_NAME);
+      dd.clearData();
+      remove(OUTPUT_RESULT_NAME);
+      rename(OUTPUT_FILE_NAME, OUTPUT_RESULT_NAME);
+      intUp();
+      timeToIntDown = UP_PERIOD;
     }
-
+    else
+      dd.addInfoAboutMAC(a, t, p);
+    
+    //Time manager.
+    time_t curTime = time(NULL);
+    double dt = difftime(curTime, lastTime);
+    lastTime = curTime;
+    if (dt > 0)
+    {
+      if (timeToFlush > 0)
+      {
+        timeToFlush -= dt;
+        if (timeToFlush <= 0)
+        {
+          dd.flushToFile(OUTPUT_FILE_NAME);
+          dd.clearData();
+          timeToFlush = FLUSH_PERIOD;
+        }
+      }
+      if (timeToIntDown > 0)
+      {
+        timeToIntDown -= dt;
+        if (timeToIntDown <= 0)
+           intDown();
+      }
+    }
   }
   delete [] input;
 }
