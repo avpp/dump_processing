@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <errno.h>
+#include <stdint.h>
 
 DumpData::DumpData()
 {
@@ -42,6 +43,25 @@ void DumpData::clearData()
   m.clear();
 }
 
+template <typename T>
+void var2charArray(T l, char *c)
+{
+  for (int i = 0; i < sizeof(T); i++)
+  {
+    c[i] = 0xFF & (l>>(i*8));
+  }
+}
+
+template <typename T>
+void  charArray2var(char *c, T &l)
+{
+  l = 0;
+  for (int i = 0; i < sizeof(T); i++)
+  {
+    l |= (((T)(c[i]))&0xFF)<<(i*8);
+  }
+}
+
 /*
 all data represent as array of:
 [
@@ -58,48 +78,60 @@ all data represent as array of:
 void DumpData::addInfoToFile(FILE *f)
 {
   map<MACaddr, vector<pair<Time, Power> > >::iterator itr;
+  char* buf = new char[8];
   for (itr = m.begin(); itr != m.end(); itr++)
   {
     vector<pair<Time, Power> >::iterator vitr;
     MACaddr a = itr->first;
-    fwrite(a.getCompress(), 6, 1, f);
+    fwrite(a.getCompress(), 1, 6, f);
     double lastTime = itr->second.front().first;
-    fwrite(&lastTime, sizeof(Time), 1, f);
-    unsigned long sz = itr->second.size();
-    fwrite(&sz, sizeof(sz), 1, f);
+    int64_t *lt = (int64_t*)(&lastTime);
+    var2charArray(*lt, buf);
+    fwrite(buf, 1, 8, f);
+    uint32_t sz = itr->second.size();
+    var2charArray(sz, buf);
+    fwrite(buf, 1, 4, f);
     for (vitr = itr->second.begin(); vitr != itr->second.end(); vitr++)
     {
-      long dt = (long)((vitr->first - lastTime)*1000);
+      int32_t dt = (int32_t)((vitr->first - lastTime)*1000);
       lastTime = vitr->first;
-      fwrite(&dt, sizeof(long), 1, f);
-      fwrite(&(vitr->second), sizeof(Power), 1, f);
+      var2charArray(dt, buf);
+      fwrite(buf, 1, 4, f);
+      fwrite(&(vitr->second), 1, 1, f);
     }
   }
+  delete [] buf;
 }
 
 void DumpData::readInfoFromFile(FILE *f)
 {
+  char *buf = new char [8];
   while (true)
   {
     char pack_mac[6];
-    if (fread(pack_mac, 6, 1, f) != 1)
-      return;
+    if (fread(pack_mac, 1, 6, f) != 6)
+      break;
     MACaddr a;
     a.setCompress(pack_mac);
     Time lastTime;
-    unsigned long sz;
-    fread(&lastTime, sizeof(Time), 1, f);
-    fread(&sz, sizeof(unsigned long), 1, f);
+    uint32_t sz;
+    fread(buf, 1, 8, f);
+    int64_t *lt = (int64_t*)(&lastTime);
+    charArray2var(buf, *lt);
+    fread(buf, 1, 4, f);
+    charArray2var(buf, sz);
     for (int i = 0; i < sz; i++)
     {
-      long dt;
+      int32_t dt;
       Power p;
-      fread(&dt, sizeof(long), 1, f);
-      fread(&p, sizeof(Power), 1, f);
+      fread(buf, 1, 4, f);
+      charArray2var(buf, dt);
+      fread(&p, 1, 1, f);
       lastTime += 0.001*dt;
       addInfoAboutMAC(a, lastTime, p);
     }
   }
+  delete [] buf;
 }
 
 vector<MACaddr> DumpData::getAllMAC()
@@ -107,6 +139,7 @@ vector<MACaddr> DumpData::getAllMAC()
   vector<MACaddr> v;
   for (map<MACaddr, vector<pair<Time, Power> > >::iterator itr = m.begin(); itr != m.end(); itr++)
     v.push_back(itr->first);
+  return v;
 }
 
 vector<pair<Time, Power> > DumpData::getInfoAboutMAC(MACaddr a)

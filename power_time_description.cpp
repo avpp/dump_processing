@@ -2,6 +2,10 @@
 #include <string.h>
 #include "power_time_description.h"
 #include "misc.h"
+#include <iostream>
+#include <time.h>
+
+using namespace std;
 
 bool tryParsePower(char* s, Power &p)
 {
@@ -26,4 +30,16 @@ bool tryParsePower(char* s, Power &p)
   }
   return false;
 }
+/*
+ostream& operator << (ostream &s, Power p)
+{
+  s<<((int)p)<<"dB";
+  return s;
+}
 
+ostream& operator << (ostream &s, Time t)
+{
+  s<<(long)t<<"."<<(long)((t-(long)t)*1000);
+  return s;
+}
+*/

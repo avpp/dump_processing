@@ -9,8 +9,10 @@ LD=$(PATH_TO_BIN)/mips-openwrt-linux-uclibc-g++
 CFLAGS=-c -I$(STAGING_DIR)/include
 LDFLAGS= -L$(STAGING_DIR)/lib
 SOURCES=processing.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp cfg.cpp
+#SOURCES=reader.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp cfg.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=processing.exe
+#EXECUTABLE=reader_router.exe
 
 all: $(SOURCES) $(EXECUTABLE)
 
@@ -19,3 +21,6 @@ $(EXECUTABLE): $(OBJECTS)
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
+
+reader:
+	g++ -o reader.exe reader.cpp misc.cpp dumpData.cpp mac_description.cpp power_time_description.cpp
