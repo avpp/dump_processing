@@ -57,6 +57,14 @@ using namespace std;
   {
     return addr;
   }
+
+  unsigned char*& MACaddr::getCompress(unsigned char *m)
+  {
+    for (int i = 0; i < 6; i++)
+      m[i] = addr[i];
+    return m;
+  }
+
   void MACaddr::setCompress(char* a)
   {
     for (int i = 0; i < 6; i++)

@@ -8,7 +8,7 @@ LD=$(PATH_TO_BIN)/mips-openwrt-linux-uclibc-g++
 #LDFLAGS= -L$(PATH_TO_USR)/lib
 CFLAGS=-c -I$(STAGING_DIR)/include
 LDFLAGS= -L$(STAGING_DIR)/lib
-SOURCES=processing.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp
+SOURCES=processing.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp cfg.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=processing.exe
 

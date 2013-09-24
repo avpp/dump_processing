@@ -3,23 +3,38 @@
 #include "mac_description.h"
 #include <vector>
 #include <map>
+#include <errno.h>
 
 DumpData::DumpData()
 {
 }
 
-void DumpData::flushToFile(char *fileName)
+bool DumpData::flushToFile(char *fileName)
 {
   FILE* f = fopen(fileName, "ab");
+  if (f == NULL)
+  {
+    cout<<"\n!!!!!!!!!!!Error open file while write data.\n";
+    cout<<"Errno: "<<errno<<endl;
+    return false;
+  }
   addInfoToFile(f);
   fclose(f);
+  return true;
 }
 
-void DumpData::loadFromFile(char *fileName)
+bool DumpData::loadFromFile(char *fileName)
 {
   FILE* f = fopen(fileName, "rb");
+  if (f == NULL)
+  {
+    cout<<"\n!!!!!!!!!!!Error open file while read data.\n";
+    cout<<"Errno: "<<errno<<endl;
+    return false;
+  }
   readInfoFromFile(f);
   fclose(f);
+  return true;
 }
 
 void DumpData::clearData()

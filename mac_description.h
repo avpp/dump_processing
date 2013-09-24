@@ -17,6 +17,7 @@ public:
   operator int () const;
   unsigned char& operator [ ] (int n);
   unsigned char* getCompress();
+  unsigned char*& getCompress(unsigned char* m);
   void setCompress(char* a);
 };
 

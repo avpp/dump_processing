@@ -11,8 +11,8 @@ class DumpData
 {
   public:
     DumpData();
-    void flushToFile(char *fileName);
-    void loadFromFile(char *fileName);
+    bool flushToFile(char *fileName);
+    bool loadFromFile(char *fileName);
     void clearData();
     vector<MACaddr> getAllMAC();
     vector<pair<Time, Power> > getInfoAboutMAC(MACaddr a);
