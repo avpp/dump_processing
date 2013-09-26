@@ -15,10 +15,12 @@ using namespace std;
 
 void intDown()
 {
+cout<<"\nWi-Fi should down\n";
 }
 
 void intUp()
 {
+cout<<"\nWi-Fi should up\n";
 }
 
 void readListFromFile(char *fileName, vector<MACaddr> &v)
@@ -46,16 +48,72 @@ void readListFromFile(char *fileName, vector<MACaddr> &v)
   delete [] s;
 }
 
+MACaddr getCurMAC()
+{
+  return MACaddr("F8:1A:67:D9:F5:1E");
+}
+
+char* generateFileNamePrefix(char* directory)
+{
+  MACaddr a = getCurMAC();
+  int prefixSize = strlen(directory);
+  prefixSize += 6*2 + 5 + 1 + 4;
+  char *prefix = new char[prefixSize];
+  sprintf(prefix, "%s/%x-%x-%x-%x-%x-%x_", directory, a[0], a[1], a[2], a[3], a[4], a[5]);
+  return prefix;
+}
+
+bool fileExist(char* fname)
+{
+  FILE* f = fopen(fname, "r");
+  if (f == NULL)
+    return false;
+  fclose(f);
+  return true;
+}
+
+int lastFileNum = 1;
+char* RESULT_FILE_NAME;
+char* getNextFileName(char* filePrefix)
+{
+  if (RESULT_FILE_NAME)
+    delete [] RESULT_FILE_NAME;
+  int endPrefix = strlen(filePrefix);
+  RESULT_FILE_NAME = new char [endPrefix + 15];
+  strcpy(RESULT_FILE_NAME, filePrefix);
+  char* num = new char [15];
+  sprintf(num, "%d.dump", 1);
+  strcat(RESULT_FILE_NAME, num);
+  if (!fileExist(RESULT_FILE_NAME))
+    lastFileNum = 0;
+  else
+    lastFileNum--;
+  do
+  {
+    lastFileNum++;
+    sprintf(num, "%d.dump", lastFileNum);
+    RESULT_FILE_NAME[endPrefix] = 0;
+    strcat(RESULT_FILE_NAME, num);
+  }
+  while (fileExist(RESULT_FILE_NAME));
+  delete [] num;
+  return RESULT_FILE_NAME;
+}
+
 char *CONFIG_FILE_NAME="config.cfg";
 
 int main()
 {
+  RESULT_FILE_NAME = NULL;
+  bool pointUp = false;
   clock_t lastTime = time(NULL);
   
   Config cfg(CONFIG_FILE_NAME);
   
+  char *DUMP_COMMAND_FILE = cfg.getProp("dump_command");
+
   char *OUTPUT_FILE_NAME = cfg.getProp("output");
-  char *RESULT_FILE_NAME = cfg.getProp("result");
+  char *RESULT_FILE_DIR = cfg.getProp("result");
   char *ignoreFileName = cfg.getProp("ignore");
   char *trustedFileName = cfg.getProp("trusted");
   char *up_period_str = cfg.getProp("up_period");
@@ -79,14 +137,14 @@ int main()
   }
   cout<<"'"<<OUTPUT_FILE_NAME<<"'\n";
   
-  cout<<"Result file name is: ";
-  if (RESULT_FILE_NAME == NULL)
+  cout<<"Result file name prefix is: ";
+  if (RESULT_FILE_DIR == NULL)
   {
     cout<<"Error! No result file name.\n";
     exit(1);
   }
-  cout<<"'"<<RESULT_FILE_NAME<<"'\n";
-
+  char* RESULT_FILE_NAME_PREFIX = generateFileNamePrefix(RESULT_FILE_DIR);
+  cout<<"'"<<RESULT_FILE_NAME_PREFIX<<"'\n";
 
   DumpData dd;
   char *input = new char [1024];
@@ -122,14 +180,18 @@ int main()
     //MAC check
     if (MACinList(a, ignoreList))
       continue;
-    else if (MACinList(a, trustedList))
+    else if (MACinList(a, trustedList) || !remove(DUMP_COMMAND_FILE))/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
     {
     //  cout<<"^^^ this is trusted MAC ^^^\n\n";
-      dd.flushToFile(OUTPUT_FILE_NAME);
-      dd.clearData();
-      remove(RESULT_FILE_NAME);
-      rename(OUTPUT_FILE_NAME, RESULT_FILE_NAME);
-      intUp();
+      if (!pointUp)
+      {
+        cout<<" flush to file. And copy to "<<RESULT_FILE_DIR<<endl;
+        dd.flushToFile(OUTPUT_FILE_NAME);
+        dd.clearData();
+        rename(OUTPUT_FILE_NAME, getNextFileName(RESULT_FILE_NAME_PREFIX));
+        intUp();
+        pointUp = true;
+      }
       timeToIntDown = UP_PERIOD;
     }
     else
@@ -157,7 +219,10 @@ int main()
       {
         timeToIntDown -= dt;
         if (timeToIntDown <= 0)
+        {
            intDown();
+           pointUp = false;
+        }
       }
     }
   }

@@ -21,9 +21,12 @@ int main(int argc, char** argv)
   {
     vector<pair<Time, Power> > i = dd.getInfoAboutMAC(*itr);
     cout<<"\n"<<*itr<<" : ";
+    int cnt = 0;
     for (vector<pair<Time, Power> >::iterator vitr = i.begin(); vitr != i.end(); vitr++)
     {
+      if (!((cnt++)%7)) cout<<endl;
       cout<<"{"<<(Time)(vitr->first)<<", "<<(int)(Power)(vitr->second)<<"dB}; ";
     }
+    cout<<"\n\n********************************\n\n";
   }
 }
