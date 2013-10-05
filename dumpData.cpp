@@ -70,7 +70,7 @@ all data represent as array of:
   Amount of data records = unsigned long = 4 byte
   Array of datarecords:
   [
-    delta time = long = 4 byte
+    delta time = long = 2 byte!!! now in 10ms
     power value = unsigned char = 1 byte
   ]
 ]
@@ -93,10 +93,10 @@ void DumpData::addInfoToFile(FILE *f)
     fwrite(buf, 1, 4, f);
     for (vitr = itr->second.begin(); vitr != itr->second.end(); vitr++)
     {
-      int32_t dt = (int32_t)((vitr->first - lastTime)*1000);
+      uint16_t dt = (uint16_t)((vitr->first - lastTime)*100);
       lastTime = vitr->first;
       var2charArray(dt, buf);
-      fwrite(buf, 1, 4, f);
+      fwrite(buf, 1, 2, f);
       fwrite(&(vitr->second), 1, 1, f);
     }
   }
@@ -122,12 +122,12 @@ void DumpData::readInfoFromFile(FILE *f)
     charArray2var(buf, sz);
     for (int i = 0; i < sz; i++)
     {
-      int32_t dt;
+      uint16_t dt;
       Power p;
-      fread(buf, 1, 4, f);
+      fread(buf, 1, 2, f);
       charArray2var(buf, dt);
       fread(&p, 1, 1, f);
-      lastTime += 0.001*dt;
+      lastTime += 0.01*dt;
       addInfoAboutMAC(a, lastTime, p);
     }
   }

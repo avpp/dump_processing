@@ -48,14 +48,36 @@ void readListFromFile(char *fileName, vector<MACaddr> &v)
   delete [] s;
 }
 
-MACaddr getCurMAC()
+MACaddr getDeviceMAC(char* device)
 {
-  return MACaddr("F8:1A:67:D9:F5:1E");
+  if (!device)
+  {
+    cerr<<"Device don't specify";
+    exit(1);
+  }
+  char* f = new char [strlen(device) + 10];
+  strcpy(f, device);
+  strcat(f, "/address");
+  FILE *mac_file=fopen(f, "r");
+  if (!mac_file)
+  {
+    cerr<<"Can't find device with name "<<device<<endl;
+    exit(1);
+  }
+  char* rslt = new char [20];
+  fscanf(mac_file, "%s", rslt);
+  fclose(mac_file);
+  delete [] f;
+  MACaddr resultMAC(rslt);
+  delete [] rslt;
+  return resultMAC;
 }
+
+MACaddr currentMAC;
 
 char* generateFileNamePrefix(char* directory)
 {
-  MACaddr a = getCurMAC();
+  MACaddr a = currentMAC;
   int prefixSize = strlen(directory);
   prefixSize += 6*2 + 5 + 1 + 4;
   char *prefix = new char[prefixSize];
@@ -76,11 +98,18 @@ int lastFileNum = 1;
 char* RESULT_FILE_NAME;
 char* getNextFileName(char* filePrefix)
 {
+/*file_name=MA-CM-AC-MA-CM-AC_YYYY-mm-dd_HH-MM-SS_NUM*/
   if (RESULT_FILE_NAME)
     delete [] RESULT_FILE_NAME;
-  int endPrefix = strlen(filePrefix);
+  int endPrefix = strlen(filePrefix) + 20; /*For data-time*/
   RESULT_FILE_NAME = new char [endPrefix + 15];
   strcpy(RESULT_FILE_NAME, filePrefix);
+  char cur_date_time[21];
+  time_t cur_time;
+  time(&cur_time);
+  struct tm* time_info = localtime(&cur_time);
+  strftime(cur_date_time, 21, "%F_%H-%M-%S_", time_info);
+  strcat(RESULT_FILE_NAME, cur_date_time);
   char* num = new char [15];
   sprintf(num, "%d.dump", 1);
   strcat(RESULT_FILE_NAME, num);
@@ -106,6 +135,7 @@ int main()
 {
   RESULT_FILE_NAME = NULL;
   bool pointUp = false;
+  bool shouldUp = false;
   clock_t lastTime = time(NULL);
   
   Config cfg(CONFIG_FILE_NAME);
@@ -118,21 +148,28 @@ int main()
   char *trustedFileName = cfg.getProp("trusted");
   char *up_period_str = cfg.getProp("up_period");
   char *flush_period_str = cfg.getProp("flush_period");
+  char *result_period_str = cfg.getProp("result_period");
+  char *current_device = cfg.getProp("net_device");
+
+  currentMAC = getDeviceMAC(current_device);
+  
   vector<MACaddr> ignoreList;
   vector<MACaddr> trustedList;
   readListFromFile(ignoreFileName, ignoreList);
   readListFromFile(trustedFileName, trustedList);
-  double UP_PERIOD = 5*60, FLUSH_PERIOD = 60;
+  double UP_PERIOD = 5*60, FLUSH_PERIOD = 60, RESULT_PERIOD = 60*60;
   if (up_period_str)
     sscanf(up_period_str, "%lf", &UP_PERIOD);
   if (flush_period_str)
     sscanf(flush_period_str, "%lf", &FLUSH_PERIOD);
+  if (result_period_str)
+    sscanf(result_period_str, "%lf", &RESULT_PERIOD);
 
   cout<<"Successfully read config file '"<<CONFIG_FILE_NAME<<"'.\n";
   cout<<"Temporary output file name is: ";
   if (OUTPUT_FILE_NAME == NULL)
   {
-    cout<<"Error! No output file name.\n";
+    cerr<<"Error! No output file name.\n";
     exit(1);
   }
   cout<<"'"<<OUTPUT_FILE_NAME<<"'\n";
@@ -140,7 +177,7 @@ int main()
   cout<<"Result file name prefix is: ";
   if (RESULT_FILE_DIR == NULL)
   {
-    cout<<"Error! No result file name.\n";
+    cerr<<"Error! No result file name.\n";
     exit(1);
   }
   char* RESULT_FILE_NAME_PREFIX = generateFileNamePrefix(RESULT_FILE_DIR);
@@ -149,8 +186,9 @@ int main()
   DumpData dd;
   char *input = new char [1024];
   double timeToFlush = FLUSH_PERIOD;
+  double timeToResult = RESULT_PERIOD;
   double timeToIntDown = -1;
-
+  
   while (true)
   {
     //Parse input
@@ -175,24 +213,26 @@ int main()
     if (!PowerDetected || !MACdetected)
       continue;
 
-    //cout<<t<<" "<<a<<" "<<(int)p<<endl;
-
+    
     //MAC check
     if (MACinList(a, ignoreList))
       continue;
-    else if (MACinList(a, trustedList) || !remove(DUMP_COMMAND_FILE))/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+    else if ( (shouldUp = MACinList(a, trustedList)) || !remove(DUMP_COMMAND_FILE) || timeToResult < 0)
     {
-    //  cout<<"^^^ this is trusted MAC ^^^\n\n";
-      if (!pointUp)
+      cout<<" flush to file. And copy to "<<RESULT_FILE_DIR<<endl;
+      dd.flushToFile(OUTPUT_FILE_NAME);
+      dd.clearData();
+      rename(OUTPUT_FILE_NAME, getNextFileName(RESULT_FILE_NAME_PREFIX));
+      timeToResult = RESULT_PERIOD;
+      if (shouldUp)
       {
-        cout<<" flush to file. And copy to "<<RESULT_FILE_DIR<<endl;
-        dd.flushToFile(OUTPUT_FILE_NAME);
-        dd.clearData();
-        rename(OUTPUT_FILE_NAME, getNextFileName(RESULT_FILE_NAME_PREFIX));
-        intUp();
-        pointUp = true;
+        if (!pointUp)
+        {
+          intUp();
+          pointUp = true;
+        }
+        timeToIntDown = UP_PERIOD;
       }
-      timeToIntDown = UP_PERIOD;
     }
     else
       dd.addInfoAboutMAC(a, t, p);
@@ -204,6 +244,7 @@ int main()
     cout<<"\r"<<curTime;
     if (dt > 0)
     {
+      timeToResult -= dt;
       if (timeToFlush > 0)
       {
         timeToFlush -= dt;
