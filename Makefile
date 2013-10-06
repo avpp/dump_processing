@@ -24,3 +24,6 @@ $(EXECUTABLE): $(OBJECTS)
 
 reader:
 	g++ -o reader.exe reader.cpp misc.cpp dumpData.cpp mac_description.cpp power_time_description.cpp
+
+netcat:
+	$(CC) -I$(STAGING_DIR)/include -L$(STAGING_DIR)/lib -o netcat netcat.cpp
