@@ -53,12 +53,15 @@ int main(int argc, char** argv)
   }
   int cnt;
   char* d = new char [1001];
+  int sendsz = 0;
   printf("send:\n");
   do
   {
+    sendsz = 0;
     cnt = fread(d, 1, 1000, in);
-    printf("%s", d);
-    send(s, d, cnt, 0);
+    //printf("%s", d);
+    while (sendsz != cnt)
+      sendsz += send(s, &(d[sendsz]), cnt-sendsz, 0);
   }
   while (cnt == 1000);
   printf("\n\nrecieve:\n");
