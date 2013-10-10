@@ -21,7 +21,7 @@ class DumpData
   private:
     map<MACaddr, vector<pair<Time, Power> > > m;
     void addInfoToFile(FILE *f);
-    void readInfoFromFile(FILE *f);
+    bool readInfoFromFile(FILE *f);
 };
 
 #endif

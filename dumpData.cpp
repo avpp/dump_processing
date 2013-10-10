@@ -15,8 +15,8 @@ bool DumpData::flushToFile(char *fileName)
   FILE* f = fopen(fileName, "ab");
   if (f == NULL)
   {
-    cout<<"\n!!!!!!!!!!!Error open file while write data.\n";
-    cout<<"Errno: "<<errno<<endl;
+    cerr<<"\n!!!!!!!!!!!Error open file while write data.\n";
+    cerr<<"Errno: "<<errno<<endl;
     return false;
   }
   addInfoToFile(f);
@@ -29,13 +29,17 @@ bool DumpData::loadFromFile(char *fileName)
   FILE* f = fopen(fileName, "rb");
   if (f == NULL)
   {
-    cout<<"\n!!!!!!!!!!!Error open file while read data.\n";
-    cout<<"Errno: "<<errno<<endl;
+    cerr<<"\n!!!!!!!!!!!Error open file while read data.\n";
+    cerr<<"Errno: "<<errno<<endl;
     return false;
   }
-  readInfoFromFile(f);
+  bool rslt = readInfoFromFile(f);
+  if (!rslt)
+  {
+    cerr<<"Error input format file.\n";
+  }
   fclose(f);
-  return true;
+  return rslt;
 }
 
 void DumpData::clearData()
@@ -103,10 +107,11 @@ void DumpData::addInfoToFile(FILE *f)
   delete [] buf;
 }
 
-void DumpData::readInfoFromFile(FILE *f)
+bool DumpData::readInfoFromFile(FILE *f)
 {
+  bool rslt = true;
   char *buf = new char [8];
-  while (true)
+  while (rslt)
   {
     char pack_mac[6];
     if (fread(pack_mac, 1, 6, f) != 6)
@@ -116,7 +121,7 @@ void DumpData::readInfoFromFile(FILE *f)
     Time lastTime;
     uint32_t sz;
     if (fread(buf, 1, 8, f) != 8)
-      break;
+      {rslt = false; break;}
     int64_t *lt = (int64_t*)(&lastTime);
     charArray2var(buf, *lt);
     fread(buf, 1, 4, f);
@@ -126,15 +131,16 @@ void DumpData::readInfoFromFile(FILE *f)
       uint16_t dt;
       Power p;
       if (fread(buf, 1, 2, f) != 2)
-        break;
+        {rslt = false; break;}
       charArray2var(buf, dt);
       if (fread(&p, 1, 1, f) != 1)
-        break;
+        {rslt = false; break;}
       lastTime += 0.01*dt;
       addInfoAboutMAC(a, lastTime, p);
     }
   }
   delete [] buf;
+  return rslt;
 }
 
 vector<MACaddr> DumpData::getAllMAC()
