@@ -6,8 +6,8 @@ CC=$(PATH_TO_BIN)/mips-openwrt-linux-uclibc-g++
 LD=$(PATH_TO_BIN)/mips-openwrt-linux-uclibc-g++
 #CFLAGS=-c -I$(PATH_TO_USR)/include
 #LDFLAGS= -L$(PATH_TO_USR)/lib
-CFLAGS=-c -I$(STAGING_DIR)/include
-LDFLAGS= -L$(STAGING_DIR)/lib
+CFLAGS=-c -I$(STAGING_DIR)/include -Os -ffunction-sections -Wl,--gc-sections -fno-asynchronous-unwind-tables -Wl,--strip-all
+LDFLAGS= -L$(STAGING_DIR)/lib -Wl,--gc-sections -Wl,--strip-all
 SOURCES=processing.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp cfg.cpp
 #SOURCES=reader.cpp mac_description.cpp power_time_description.cpp misc.cpp dumpData.cpp cfg.cpp
 OBJECTS=$(SOURCES:.cpp=.o)

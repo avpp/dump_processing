@@ -115,7 +115,8 @@ void DumpData::readInfoFromFile(FILE *f)
     a.setCompress(pack_mac);
     Time lastTime;
     uint32_t sz;
-    fread(buf, 1, 8, f);
+    if (fread(buf, 1, 8, f) != 8)
+      break;
     int64_t *lt = (int64_t*)(&lastTime);
     charArray2var(buf, *lt);
     fread(buf, 1, 4, f);
@@ -124,9 +125,11 @@ void DumpData::readInfoFromFile(FILE *f)
     {
       uint16_t dt;
       Power p;
-      fread(buf, 1, 2, f);
+      if (fread(buf, 1, 2, f) != 2)
+        break;
       charArray2var(buf, dt);
-      fread(&p, 1, 1, f);
+      if (fread(&p, 1, 1, f) != 1)
+        break;
       lastTime += 0.01*dt;
       addInfoAboutMAC(a, lastTime, p);
     }
