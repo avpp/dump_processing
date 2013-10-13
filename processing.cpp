@@ -81,7 +81,7 @@ char* generateFileNamePrefix(char* directory)
   int prefixSize = strlen(directory);
   prefixSize += 6*2 + 5 + 1 + 4;
   char *prefix = new char[prefixSize];
-  sprintf(prefix, "%s/%x-%x-%x-%x-%x-%x_", directory, a[0], a[1], a[2], a[3], a[4], a[5]);
+  sprintf(prefix, "%s/%.2x-%.2x-%.2x-%.2x-%.2x-%.2x_", directory, a[0], a[1], a[2], a[3], a[4], a[5]);
   return prefix;
 }
 

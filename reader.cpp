@@ -15,7 +15,8 @@ int main(int argc, char** argv)
     return 0;
   }
   DumpData dd;
-  dd.loadFromFile(argv[1]);
+  if (!dd.loadFromFile(argv[1]))
+    return 1;
   vector<MACaddr> v = dd.getAllMAC();
   for (vector<MACaddr>::iterator itr = v.begin(); itr != v.end(); itr++)
   {
