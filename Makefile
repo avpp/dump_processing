@@ -27,3 +27,6 @@ reader:
 
 netcat:
 	$(CC) -I$(STAGING_DIR)/include -L$(STAGING_DIR)/lib -o netcat netcat.cpp
+
+install: $(EXECUTABLE)
+	cp $(EXECUTABLE) ./firmware/files/$(EXECUTABLE)
