@@ -4,6 +4,7 @@
 #include "misc.h"
 #include <vector>
 #include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -26,7 +27,7 @@ int main(int argc, char** argv)
     for (vector<pair<Time, Power> >::iterator vitr = i.begin(); vitr != i.end(); vitr++)
     {
       if (!((cnt++)%7)) cout<<endl;
-      cout<<"{"<<(Time)(vitr->first)<<", "<<(int)(Power)(vitr->second)<<"dB}; ";
+      cout<<"{"<<fixed<<setw(12)<<setprecision(4)<<(Time)(vitr->first)<<scientific<<setw(0)<<setprecision(5)<<", "<<(int)(Power)(vitr->second)<<"dB}; ";
     }
     cout<<"\n\n********************************\n\n";
   }
