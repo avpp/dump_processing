@@ -29,6 +29,13 @@ echo -e "\r" >> $RESULT_FILE
 cat /sys/class/net/mon.wlan0/address >> $RESULT_FILE
 echo -e "\r" >> $RESULT_FILE
 
+#add Version info
+echo -e "--$RANDOM\r">>$RESULT_FILE
+echo -e "Content-Disposition: form-date; name=\"sys_version\"\r" >> $RESULT_FILE
+echo -e "\r" >> $RESULT_FILE
+cat /proc/version >> $RESULT_FILE
+echo -e "\r" >> $RESULT_FILE
+
 #add ifconfig result
 echo -e "--$RANDOM\r">>$RESULT_FILE
 echo -e "Content-Disposition: form-data; name=\"ifconfig_result\"\r" >> $RESULT_FILE
