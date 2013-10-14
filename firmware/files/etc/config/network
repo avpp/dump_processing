@@ -5,16 +5,25 @@ config interface 'loopback'
 	option ipaddr '127.0.0.1'
 	option netmask '255.0.0.0'
 
+config globals 'globals'
+	option ula_prefix 'fd99:9366:5740::/48'
+
 config interface 'lan'
 	option ifname 'eth1'
 	option type 'bridge'
 	option proto 'static'
-	option netmask '255.255.255.0'
 	option ipaddr '192.168.0.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
 
 config interface 'wan'
 	option ifname 'eth0'
 	option proto 'dhcp'
+	option dns '8.8.8.8 8.8.4.4'
+
+config interface 'wan6'
+	option ifname '@wan'
+	option proto 'dhcpv6'
 
 config switch
 	option name 'switch0'
