@@ -26,7 +26,8 @@ done
 echo -e "--$RANDOM\r">>$RESULT_FILE
 echo -e "Content-Disposition: form-data; name=\"MAC\"\r" >> $RESULT_FILE
 echo -e "\r" >> $RESULT_FILE
-cat /sys/class/net/mon.wlan0/address >> $RESULT_FILE
+#cat /sys/class/net/mon.wlan0/address >> $RESULT_FILE
+cat /sys/class/net/eth1/address >> $RESULT_FILE
 echo -e "\r" >> $RESULT_FILE
 
 #add Version info

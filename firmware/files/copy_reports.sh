@@ -6,6 +6,6 @@ fi
 
 if [ -f /*.errors ]; then
   for %f in /*.errors; do
-    mv $f /result/$(basename $f).dump
+    mv $f /result/$(basename $f).$(date +"%s").dump
   done
 fi
